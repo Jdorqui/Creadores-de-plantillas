@@ -1,0 +1,20 @@
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+.controls {
+    height: 50px;
+    padding: 5px;
+    background: #f8f8f8;
+    border-bottom: 1px solid #ccc;
+}
+
+.controls button,.controls input[type="file"] {
+    margin-right: 5px;
+}
+
+#gjs {
+    height: calc(100% - 50px);
+    border: 1px solid #ddd;
+}

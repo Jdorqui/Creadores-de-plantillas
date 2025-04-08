@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <title>Editor de Plantillas GrapesJS</title>
+    <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <!-- input para añadir el html y boton para exportar en la consola -->
+    <div class="controls">
+      <input type="file" id="file-input" accept=".html">
+      <button id="export-html">Exportar HTML</button>
+    </div>
+
+    <!-- editor -->
+    <div id="gjs">
+      <header style="padding:20px; background:#f8f9fa;">
+        <h1>Encabezado de la Factura</h1>
+      </header>
+      <main style="padding:20px;">
+        <p>Contenido de la factura...</p>
+      </main>
+      <footer style="padding:20px; background:#f8f9fa;">
+        <p>Pie de página</p>
+      </footer>
+    </div>
+
+    <script src="https://unpkg.com/grapesjs"></script> <!-- Script de grapesjs -->
+    <script src="script.js"></script>
+  </body>
+</html>
