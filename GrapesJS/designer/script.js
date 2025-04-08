@@ -21,10 +21,40 @@ var editor = grapesjs.init({
 
   //obtiene el contenido html y css y lo exporta en la consola
   document.getElementById('export-html').addEventListener('click', function() {
+    // Obtiene el contenido HTML y CSS del editor
     var htmlExport = editor.getHtml();
     var cssExport  = editor.getCss();
-    console.log("HTML Exportado:", htmlExport);
-    console.log("CSS Exportado:", cssExport);
-    // Aquí podrías, por ejemplo, mostrarlo en un modal o copiarlo al portapapeles.
-    alert("HTML y CSS exportados en la consola");
-  });
+
+    // Combina el HTML y el CSS en un solo documento
+    var finalHtml = `
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <title>Template Exportado</title>
+    <style>
+      ${cssExport}
+    </style>
+  </head>
+  <body>
+    ${htmlExport}
+  </body>
+</html>
+    `;
+
+    //console.log("HTML Exportado:", finalHtml);
+
+    // Crea un Blob y genera un link de descarga
+    var blob = new Blob([finalHtml], { type: "text/html" });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = "template.html";
+    // Se simula el click para descargar el archivo
+    link.click();
+
+    // Libera la URL creada
+    URL.revokeObjectURL(url);
+
+    // Opcional: muestra una alerta
+    alert("Archivo HTML descargado.");})
