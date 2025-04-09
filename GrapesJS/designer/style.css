@@ -1,6 +1,7 @@
 html, body {
     height: 100%;
     margin: 0;
+    padding: 0;
 }
 
 .controls {
@@ -10,11 +11,16 @@ html, body {
     border-bottom: 1px solid #ccc;
 }
 
-.controls button,.controls input[type="file"] {
-    margin-right: 5px;
+.controls {
+    position: fixed;
+    top: 3px;
+    left: 10%;
+    z-index: 1000;
+    background-color: rgba(255, 255, 255, 0);
 }
 
 #gjs {
-    height: calc(100% - 50px);
-    border: 1px solid #ddd;
+    height: 100%;
+    width: 100%;
+    overflow: auto;
 }
