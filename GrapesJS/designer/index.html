@@ -7,10 +7,10 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <!-- input para añadir el html y boton para exportar en la consola -->
+    <!-- input para añadir los botones superiores -->
     <div class="controls">
-      <input type="file" id="file-input" accept=".html">
-      <button id="export-html">Exportar HTML</button>
+      <input type="file" id="file-input" accept=".html" hidden>
+      <button id="export-html" hidden>Exportar HTML</button>
     </div>
 
     <!-- editor -->
@@ -24,6 +24,18 @@
       <footer style="padding:20px; background:#f8f9fa;">
         <p>Pie de página</p>
       </footer>
+    </div>
+
+    <div id="tabla-menu-contextual">
+      <button id="add-row-btn">➕ Fila</button>
+      <button id="add-col-btn">➕ Columna</button>
+      <button id="del-row-btn">❌ Fila</button>
+      <button id="del-col-btn">❌ Columna</button>
+    </div>
+
+    <div id="selector-tabla">
+      <div id="grid-container" style="display: grid; grid-template-columns: repeat(10, 20px); grid-auto-rows: 20px; gap: 2px;"></div>
+      <div id="grid-label" style="margin-top: 4px; font-size: 12px; text-align: center;">0x0</div>
     </div>
 
     <script src="https://unpkg.com/grapesjs"></script> <!-- script de grapesjs -->
