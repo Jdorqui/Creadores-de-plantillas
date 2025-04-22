@@ -1,8 +1,7 @@
-// Constantes globales
 const GRID_SIZE = 20;
 let mostrarCuadricula = true;
 
-// Inicialización del editor de GrapesJS
+//inicializacion del editor grapejs
 const editor = grapesjs.init({
   container: '#gjs',
   fromElement: false,
@@ -11,21 +10,17 @@ const editor = grapesjs.init({
   dragMode: 'absolute'
 });
 
-// ================================
-// INICIALIZACIÓN Y CONFIGURACIÓN
-// ================================
+//inicializacion de los paneles y configuracion
 editor.on('load', () => {
-  registerCustomTypes(); // Registra los tipos personalizados que permiten la edición inline
+  registerCustomTypes();
   initializeCanvas();
   setupWrapper();
   setupComponentHandlers();
   setupCustomPanels();
 });
 
-// Registro de tipos personalizados para permitir la edición (doble clic y blur)
-// Se incluye la actualización del modelo cuando se dispara el evento blur.
+//registra los tipos personalizados para el editor
 function registerCustomTypes() {
-  // Tipo personalizado para texto editable
   editor.DomComponents.addType('Text', {
     model: {
       defaults: {
@@ -83,8 +78,8 @@ function registerCustomTypes() {
     }
   });
 
-  // Tipo personalizado para celdas de tabla (table cell)
-  // Se añade tabindex para que sean focusables y así puedan disparar el evento blur.
+  //tipo personalizado para celdas de tabla (table cell)
+  //se añade tabindex para que sean focusables y asi puedan disparar el evento blur.
   editor.DomComponents.addType('table cell', {
     model: {
       defaults: {
@@ -101,7 +96,7 @@ function registerCustomTypes() {
       },
       onDblClick(e) {
         e.stopPropagation();
-        // Para que pueda recibir foco se añade tabindex
+        //para que pueda recibir foco se añade tabindex
         this.el.setAttribute('tabindex', '0');
         this.el.focus();
         this.el.setAttribute('contenteditable', 'true');
@@ -118,26 +113,26 @@ function registerCustomTypes() {
   });
 }
 
-// Configura el canvas inicial aplicando la cuadrícula si corresponde.
+//inicializa el canvas y aplica la cuadricula si es necesario.
 function initializeCanvas() {
   if (mostrarCuadricula) applyGrid();
 }
 
-// Configura el wrapper principal: lo hace droppable y agrega comportamientos de arrastre y edición a sus hijos.
+//configura el wrapper principal: lo hace droppable y agrega comportamientos de arrastre y edicion a sus hijos.
 function setupWrapper() {
   const wrapper = editor.DomComponents.getWrapper();
   wrapper.set({
     droppable: true,
     style: { position: 'relative', minHeight: '1500px' }
   });
-  // Se recorre cada componente existente para habilitar arrastre y edición
+  //se recorre cada componente para habilitar arrastre y edicion
   wrapper.find('*').forEach(comp => {
     makeDraggable(comp);
     makeEditable(comp);
   });
 }
 
-// Configura los manejadores de eventos para componentes (al agregarlos o arrastrarlos).
+//configura los manejadores de eventos para componentes (al agregarlos o arrastrarlos).
 function setupComponentHandlers() {
   editor.on('component:add', model => {
     makeDraggable(model);
@@ -155,11 +150,7 @@ function setupComponentHandlers() {
   });
 }
 
-// ================================
-// FUNCIONES DE COMPORTAMIENTO GENERAL
-// ================================
-
-// Aplica la cuadrícula en el canvas mediante background-image.
+//aplica la cuadricula en el canvas mediante background-image.
 function applyGrid() {
   const canvasBody = editor.Canvas.getBody();
   canvasBody.style.backgroundImage = `
@@ -171,21 +162,20 @@ function applyGrid() {
   canvasBody.style.position = 'relative';
 }
 
-// Elimina la cuadrícula del canvas.
+//elimina la cuadricula.
 function hideGrid() {
   editor.Canvas.getBody().style.backgroundImage = 'none';
 }
 
-// Alterna la visibilidad de la cuadrícula.
+//alterna la visibilidad de la cuadricula.
 const toggleGrid = () => {
   mostrarCuadricula = !mostrarCuadricula;
   mostrarCuadricula ? applyGrid() : hideGrid();
 };
 
-// Establece la capacidad de arrastre en ciertos elementos.
+//hace draggable divs textos imagenes y tablas.
 function makeDraggable(model) {
   const tag = model.get('tagName');
-  // Se verifica para ciertos elementos y nuestros tipos personalizados.
   if (['table', 'div', 'img'].includes(tag)) {
     model.set({
       draggable: true,
@@ -202,7 +192,7 @@ function makeDraggable(model) {
   }
 }
 
-// Permite la edición de componentes que lo requieran.
+//permite la edicion de los componentes td, th, div y text, table cell
 function makeEditable(model) {
   const tag = model.get('tagName');
   // Incluye nuestros tipos personalizados: "Text", "Div" y "table cell"
@@ -211,11 +201,7 @@ function makeEditable(model) {
   }
 }
 
-// ================================
-// PANEL PERSONALIZADO Y COMANDOS
-// ================================
-
-// Configura el panel de botones personalizados.
+//botones
 function setupCustomPanels() {
   editor.Panels.addPanel({
     id: 'custom-buttons',
@@ -273,11 +259,17 @@ function setupCustomPanels() {
           if (selected) selected.remove();
         }
       },
+      {
+        id: 'generar-pdf',
+        className: 'fa fa-file-pdf-o',
+        command: 'generar-pdf',
+        attributes: { title: 'Generar PDF' }
+      },
     ]
   });
 }
 
-// Abre el selector de archivo para cargar HTML.
+//cargar html
 function openFileCommand() {
   const input = document.createElement('input');
   input.type = 'file';
@@ -297,7 +289,7 @@ function openFileCommand() {
   document.body.removeChild(input);
 }
 
-// Exporta el HTML y CSS generados en un archivo.
+//exportacion de html y css
 function exportHTMLCommand() {
   const htmlExport = editor.getHtml();
   const cssExport = editor.getCss();
@@ -321,7 +313,7 @@ function exportHTMLCommand() {
   URL.revokeObjectURL(url);
 }
 
-// Agrega un componente de texto utilizando el tipo "Text" personalizado.
+//añade un componente tipo text.
 function addTextComponent() {
   const selected = editor.getSelected();
   const textComponent = {
@@ -340,7 +332,7 @@ function addTextComponent() {
   }
 }
 
-// Agrega un componente de imagen utilizando el tipo "image" predeterminado.
+//añade un componente tipo imagen.
 function addImageComponent() {
   const selected = editor.getSelected();
   const imageComponent = {
@@ -359,7 +351,7 @@ function addImageComponent() {
   }
 }
 
-// Agrega un componente de div utilizando el tipo "Div" personalizado.
+//añade un componente tipo div.
 function addDivComponent() {
   const selected = editor.getSelected();
   const divComponent = {
@@ -378,7 +370,7 @@ function addDivComponent() {
   }
 }
 
-// Abre el selector para insertar una tabla mediante una interfaz de cuadrícula.
+//selector de las tablas
 function openTableSelector(sender) {
   const MAX_COLS = 10;
   const MAX_ROWS = 10;
@@ -437,7 +429,7 @@ function openTableSelector(sender) {
   }, 0);
 }
 
-// Inserta la tabla en el canvas con celdas editables utilizando los tipos personalizados.
+//inserta la tabla en el canvas con el tamaño y cantidad de filas y columnas seleccionadas.
 function insertTable(cols, rows) {
   const selected = editor.getSelected();
   const wrapper = editor.DomComponents.getWrapper();
@@ -488,10 +480,7 @@ function insertTable(cols, rows) {
   }
 }
 
-// ================================
-// MENÚ CONTEXTUAL PARA TABLAS
-// ================================
-
+//tablas y celdas
 const tableContextMenu = document.getElementById('tabla-menu-contextual');
 let selectedCell = null;
 
@@ -519,7 +508,7 @@ editor.on('canvas:click', e => {
   }
 });
 
-// Retorna la fila y la tabla padre para una celda seleccionada.
+//devuelve la fila y tabla padre para una celda seleccionada.
 function getParentRowAndTable(cellModel) {
   const row = cellModel.parent();
   let table = cellModel;
@@ -529,7 +518,7 @@ function getParentRowAndTable(cellModel) {
   return { row, table };
 }
 
-// Botones del menú contextual para agregar/eliminar filas o columnas.
+//botones para añadir o eliminar filas o columnas.
 document.getElementById('add-row-btn').onclick = () => {
   if (!selectedCell) return;
   const { row } = getParentRowAndTable(selectedCell);
@@ -582,3 +571,56 @@ document.getElementById('del-col-btn').onclick = () => {
   });
   tableContextMenu.style.display = 'none';
 };
+
+//weasyprint button function para generar pdf
+editor.Commands.add('generar-pdf', {
+  run(editor) {
+      const inputArchivo = document.createElement('input');
+      inputArchivo.type = 'file';
+      inputArchivo.accept = '.html';
+      inputArchivo.style.display = 'none';
+
+      inputArchivo.onchange = event => {
+          const archivo = event.target.files[0];
+
+          if (archivo) {
+              const lector = new FileReader();
+              lector.onload = function(e) {
+                  const contenidoHTML = e.target.result;
+
+                  fetch('/generar-pdf-desde-archivo/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({html: contenidoHTML})
+                  })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => { throw new Error(text) });
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const enlace = document.createElement('a');
+                    enlace.href = url;
+                    enlace.download = 'factura.pdf';
+                    document.body.appendChild(enlace);
+                    enlace.click();
+                    enlace.remove();
+                })
+                .catch(error => {
+                    console.error('Error del servidor:', error.message);
+                    alert("Error del servidor: " + error.message);
+                });
+              };
+              lector.readAsText(archivo);
+          }
+      };
+
+      document.body.appendChild(inputArchivo);
+      inputArchivo.click();
+      document.body.removeChild(inputArchivo);
+  }
+});
