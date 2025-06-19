@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Editor Visual Plantillas Django</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="sidebar">
+    <h2>Elementos</h2>
+    <div id="element-list"></div>
+  </div>
+  <div id="main">
+    <div id="topbar">
+      <input type="file" id="file-input" accept=".html" style="display:none">
+      <button id="btn-import">📂 Importar</button>
+      <button id="btn-export">💾 Exportar</button>
+      <button id="btn-code">📜 Codigo</button>
+      <button id="btn-layout" type="button">🖱️ Editar disposición</button>
+      <button id="btn-nueva">🆕 Nueva plantilla</button>
+      <input id="nombre-plantilla" type="text" placeholder="Nombre plantilla" style="width:180px;">
+      <button id="btn-save-template" type="button">💾 Guardar plantilla</button>
+      <select id="select-plantilla"></select>
+      <button id="btn-load-template" type="button">📂 Cargar</button>
+    </div>
+    <div id="editor-area">
+      <div id="preview"></div>
+      <div id="inspector">
+        <h3>Inspector</h3>
+        <p>Selecciona un elemento para editar</p>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
