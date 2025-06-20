@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <title>Editor de Plantillas GrapesJS</title>
+    <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css"> <!-- css de grapejs -->
+    <link rel="stylesheet" href="style.css"> 
+  </head>
+  <body>
+    <div id="selector-tabla"> <!-- menu desplegable selector tabla -->
+      <div id="grid-container" style="display: grid; grid-template-columns: repeat(10, 20px); grid-auto-rows: 20px; gap: 2px;"></div>
+      <div id="grid-label" style="margin-top: 4px; font-size: 12px; text-align: center;">0x0</div>
+    </div>
+
+    <div id="selector-variable" style="position:absolute; display:none; z-index:1000; background:#fff; border:1px solid #ccc;"> <!-- menu desplegable selector de variables -->
+      <ul id="var-cats" style="list-style:none; margin:0; padding:4px;"></ul>
+    </div>
+
+    <div id="submenu-variable" style="position:absolute; display:none; z-index:1001; background:#fff; border:1px solid #ccc;"> <!-- menu desplegable selector de variables 2 -->
+      <ul id="var-items" style="list-style:none; margin:0; padding:4px;"></ul>
+    </div>
+     
+    <div id="gjs"></div> <!-- editor -->
+
+    <script src="https://unpkg.com/grapesjs"></script> <!-- script de grapesjs -->
+    <script src="https://unpkg.com/grapesjs-custom-code"></script> <!-- plugin custom code -->
+    <script src="script.js"></script>
+  </body>
+</html>

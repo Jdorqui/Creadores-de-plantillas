@@ -1,0 +1,63 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.controls {
+    position: fixed;
+    top: 10px;
+    left: 30%;
+    z-index: 1000;
+    background-color: rgba(255, 255, 255, 0);
+}
+
+#gjs {
+    position: relative;
+    height: 100vh;
+    overflow: auto;
+  }
+  
+  #tabla-menu-contextual
+  {
+    position: absolute;
+    display: none;
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+    padding: 4px;
+    font-size: 14px;
+    z-index: 9999;
+  }
+
+  #selector-tabla
+  {
+    position: flex;
+    display: none;
+    background: white;
+    border: 1px solid #ccc;
+    padding: 6px;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.15);
+    z-index: 9999;
+    font-family: sans-serif;
+  }
+
+.gjs-toolbar-item
+{
+    display: none;
+}
+
+.gjs-devices-c
+{
+    display: none;
+}
+
+#selector-variable li,
+#submenu-variable li {
+  padding: 4px 8px;
+  cursor: pointer;
+}
+#selector-variable li:hover,
+#submenu-variable li:hover {
+  background: #eef;
+}
