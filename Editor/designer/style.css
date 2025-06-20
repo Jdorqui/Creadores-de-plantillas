@@ -243,13 +243,7 @@ body, html {
   display: contents;
 }
 
-#select-plantilla
-{
-  padding-left: 125px;
-  margin-right: 12px;
-}
-
-#nombre-plantilla
+#select-plantilla, #nombre-plantilla
 {
   margin-right: 12px;
 }

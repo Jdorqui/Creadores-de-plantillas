@@ -4,20 +4,26 @@ let activeSpan = null;
 let codeMode = false;
 let layoutMode = false;
 
-// Variables por categoría
 const variables = {
   usuario: ['nombre', 'email', 'rol'],
   fecha:   ['dia', 'mes', 'anio'],
   pedido:  ['id', 'total', 'estado']
 };
 
-// Referencias al DOM
+// -----------------------
+// DOM
+// -----------------------
 const fileInput      = document.getElementById('file-input');
 const btnImport      = document.getElementById('btn-import');
 const btnExport      = document.getElementById('btn-export');
+const btnExportPDF   = document.getElementById('btn-export-pdf');
 const btnCode        = document.getElementById('btn-code');
 const btnLayout      = document.getElementById('btn-layout');
 const btnNueva       = document.getElementById('btn-nueva');
+const btnAddTable    = document.getElementById('btn-add-table');
+const btnAddImg      = document.getElementById('btn-add-img');
+const btnAddVar      = document.getElementById('btn-add-var');
+const inputInsertImg = document.getElementById('input-insert-img');
 const preview        = document.getElementById('preview');
 const elementList    = document.getElementById('element-list');
 const inspector      = document.getElementById('inspector');
@@ -26,9 +32,191 @@ const btnSaveTemplate      = document.getElementById('btn-save-template');
 const btnLoadTemplate      = document.getElementById('btn-load-template');
 const selectPlantilla      = document.getElementById('select-plantilla');
 
-// --- NUEVA PLANTILLA ---
-btnNueva.onclick = nuevaPlantillaBase;
+// -----------------------
+// Utilidad para limpiar spans antes de recargar
+// -----------------------
+function limpiarEditCells(html) {
+  return html
+    .replace(/<span class="edit-cell"[^>]*>([\s\S]*?)<\/span>/gi, '$1')
+    .replace(/ contenteditable="true"/gi, '');
+}
 
+// -----------------------
+// Añadir tabla
+// -----------------------
+btnAddTable.onclick = () => {
+  const tabla = `<table border="1" style="width:300px;min-width:120px;border-collapse:collapse;">
+    <caption>Ejemplo de tabla</caption>
+    <tr><th>Columna 1</th><th>Columna 2</th></tr>
+    <tr><td>Celda 1</td><td>Celda 2</td></tr>
+  </table>`;
+  if (activeSpan) {
+    insertHtmlAtCaret(tabla);
+    document.getElementById('ins-text') && (document.getElementById('ins-text').value = activeSpan.innerHTML);
+  } else {
+    let clean = limpiarEditCells(preview.innerHTML);
+    clean += tabla;
+    loadTemplate(clean);
+  }
+};
+
+// -----------------------
+// Añadir imagen
+// -----------------------
+btnAddImg.onclick = () => inputInsertImg.click();
+
+inputInsertImg.onchange = function(e) {
+  subirImagenAJAX(e.target.files[0]);
+  e.target.value = '';
+};
+
+// -----------------------
+// Añadir variable
+// -----------------------
+btnAddVar.onclick = showVariablesMenu;
+
+function showVariablesMenu() {
+  let menu = document.getElementById('var-menu');
+  if (menu) { menu.remove(); return; }
+  menu = document.createElement('div');
+  menu.id = 'var-menu';
+  Object.assign(menu.style, {
+    position: 'absolute',
+    top:  (btnAddVar.offsetTop + btnAddVar.offsetHeight + 6) + 'px',
+    left: btnAddVar.offsetLeft + 'px',
+    background: '#fff',
+    border: '1px solid #ccc',
+    padding: '8px',
+    zIndex: 10000
+  });
+  const sel = document.createElement('select');
+  Object.entries(variables).forEach(([cat, vars]) => {
+    const grp = document.createElement('optgroup');
+    grp.label = cat;
+    vars.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value       = `{{ ${cat}.${v} }}`;
+      opt.textContent = `${cat}.${v}`;
+      grp.appendChild(opt);
+    });
+    sel.appendChild(grp);
+  });
+  const btnIns = document.createElement('button');
+  btnIns.textContent = 'Insertar';
+  btnIns.style.marginLeft = '8px';
+  btnIns.onclick = () => {
+    insertarContenido(sel.value);
+    menu.remove();
+  };
+  menu.appendChild(sel);
+  menu.appendChild(btnIns);
+  document.body.appendChild(menu);
+  setTimeout(() => {
+    document.addEventListener('mousedown', function out(e){
+      if (!menu.contains(e.target) && e.target.id !== 'btn-add-var') {
+        menu.remove();
+        document.removeEventListener('mousedown', out);
+      }
+    });
+  }, 100);
+}
+
+// -----------------------
+// Insertar contenido
+// -----------------------
+function insertarContenido(html) {
+  if (activeSpan) {
+    insertHtmlAtCaret(html);
+    document.getElementById('ins-text') && (document.getElementById('ins-text').value = activeSpan.innerHTML);
+  } else {
+    let clean = limpiarEditCells(preview.innerHTML);
+    clean += html;
+    loadTemplate(clean);
+  }
+}
+
+// -----------------------
+// Importar/exportar
+// -----------------------
+btnImport.onclick = () => fileInput.click();
+fileInput.onchange = e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => loadTemplate(ev.target.result);
+  reader.readAsText(f, 'UTF-8');
+  e.target.value = '';
+};
+
+btnExport.onclick = () => {
+  if (codeMode) switchToVisual();
+  let updated = originalText;
+  cellRanges
+    .slice()
+    .sort((a, b) => b.start - a.start)
+    .forEach(cr => {
+      const span = document.querySelector(`.edit-cell[data-id="${cr.id}"]`);
+      const content = span ? span.innerHTML : '';
+      updated = updated.slice(0, cr.start) + content + updated.slice(cr.end);
+    });
+  updated = updated.replace(/(\{\{[^}]*?)(&nbsp;)+([^}]*?\}\})/g, '$1 $3');
+  updated = updated.replace(/(\{%[^%]*?)(&nbsp;)+([^%]*?%\})/g, '$1 $3');
+
+  const blob = new Blob([updated], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'template_django.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+btnExportPDF.onclick = () => {
+  let updated = originalText;
+  cellRanges
+    .slice()
+    .sort((a, b) => b.start - a.start)
+    .forEach(cr => {
+      const span = document.querySelector(`.edit-cell[data-id="${cr.id}"]`);
+      const content = span ? span.innerHTML : '';
+      updated = updated.slice(0, cr.start) + content + updated.slice(cr.end);
+    });
+
+  updated = updated.replace(/(\{\{[^}]*?)(&nbsp;)+([^}]*?\}\})/g, '$1 $3');
+  updated = updated.replace(/(\{%[^%]*?)(&nbsp;)+([^%]*?%\})/g, '$1 $3');
+
+  fetch('/generar-pdf-desde-archivo/', {  // <<--- Cambiado aquí
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ html: updated })
+  })
+  .then(async r => {
+    const contentType = r.headers.get("Content-Type");
+    if (!r.ok) {
+      let errMsg = await r.text();
+      alert('Error al exportar PDF\n' + errMsg);
+      return;
+    }
+    if (!contentType || !contentType.includes("pdf")) {
+      let errMsg = await r.text();
+      alert('Error: El backend no devolvió un PDF. \n\n' + errMsg);
+      return;
+    }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'plantilla.pdf';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  })
+  .catch((err) => {
+    alert('Error al exportar PDF: ' + err);
+  });
+};
+
+// -----------------------
+// Nueva plantilla
+// -----------------------
+btnNueva.onclick = nuevaPlantillaBase;
 function nuevaPlantillaBase() {
   const html = `
     <table border="1" style="border-collapse:collapse;">
@@ -51,7 +239,144 @@ function nuevaPlantillaBase() {
   }, 30);
 }
 
-// --- Control modo disposición ---
+// -----------------------
+// Cargar plantilla y marcar celdas editables por rangos
+// -----------------------
+function loadTemplate(html) {
+  originalText = html;
+  cellRanges = [];
+  const tags = ['td', 'th', 'caption', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+  let previewHTML = html;
+  let offset = 0;
+  const tagRE = new RegExp('(<(' + tags.join('|') + ')\\b[^>]*>)([\\s\\S]*?)(<\\/\\2>)', 'gi');
+  let m;
+  while ((m = tagRE.exec(html))) {
+    const [match, openTag, tagName, inner, closeTag] = m;
+    const start = m.index + openTag.length;
+    const end = start + inner.length;
+    const id = cellRanges.length;
+    cellRanges.push({ start, end, id });
+    let span = `<span class="edit-cell" data-id="${id}" contenteditable="true">${inner}</span>`;
+    previewHTML = previewHTML.slice(0, start + offset)
+      + span
+      + previewHTML.slice(end + offset);
+    offset += span.length - inner.length;
+  }
+  preview.innerHTML = previewHTML;
+
+  document.querySelectorAll('.edit-cell').forEach(span => {
+    span.onclick = () => selectElement(span);
+  });
+
+  setLayoutMode(layoutMode);
+  buildElementList();
+}
+
+// -----------------------
+// Sidebar/Inspector
+// -----------------------
+function buildElementList() {
+  if (!elementList) return;
+  elementList.innerHTML = '';
+  document.querySelectorAll('.edit-cell').forEach(span => {
+    const id = span.dataset.id;
+    const text = span.textContent.trim().slice(0, 30) || '<vacio>';
+    const btn = document.createElement('div');
+    btn.textContent = `Celda ${id}: ${text}`;
+    btn.onclick = () => selectElement(span);
+    elementList.appendChild(btn);
+  });
+}
+
+function selectElement(span) {
+  if (activeSpan) activeSpan.style.background = '';
+  activeSpan = span;
+  span.style.background = 'rgba(255,255,0,0.3)';
+  Array.from(elementList.children).forEach(d => d.classList.remove('active'));
+  const match = Array.from(elementList.children)
+    .find(d => d.textContent.startsWith(`Celda ${span.dataset.id}:`));
+  if (match) match.classList.add('active');
+
+  let html = `
+    <h3>Celda ${span.dataset.id}</h3>
+    <label>Texto:</label>
+    <textarea id="ins-text" rows="3">${span.innerHTML}</textarea>
+    <label>Estilos CSS:</label>
+    <input id="ins-style" type="text" value="${span.getAttribute('style')||''}">
+  `;
+
+  // Si está dentro de una celda de tabla, muestra botones tabla
+  const td = span.closest('td,th');
+  const table = span.closest('table');
+  if (td && table) {
+    html += `<div style="margin-top:12px;padding:8px 0;border-top:1px solid #bbb">
+      <b>Tabla</b><br>
+      <button id="add-row">➕ Fila abajo</button>
+      <button id="del-row">➖ Fila</button>
+      <button id="add-col">➕ Col derecha</button>
+      <button id="del-col">➖ Col</button>
+    </div>`;
+    setTimeout(() => {
+      document.getElementById('add-row').onclick = () => { addRow(td, table); };
+      document.getElementById('del-row').onclick = () => { delRow(td, table); };
+      document.getElementById('add-col').onclick = () => { addCol(td, table); };
+      document.getElementById('del-col').onclick = () => { delCol(td, table); };
+    }, 60);
+  }
+  inspector.innerHTML = html;
+  document.getElementById('ins-text').onblur = e =>
+    activeSpan.innerHTML = e.target.value;
+  document.getElementById('ins-style').onblur = e =>
+    activeSpan.setAttribute('style', e.target.value);
+}
+
+// Funciones tabla
+function addRow(cell, table) {
+  const row = cell.parentElement;
+  const clone = row.cloneNode(true);
+  clone.querySelectorAll('td,th').forEach(td => td.innerHTML = 'Nueva celda');
+  row.parentElement.insertBefore(clone, row.nextSibling);
+  loadTemplate(limpiarEditCells(preview.innerHTML));
+}
+function delRow(cell, table) {
+  const row = cell.parentElement;
+  if (table.rows.length <= 1) return;
+  row.parentElement.removeChild(row);
+  loadTemplate(limpiarEditCells(preview.innerHTML));
+}
+function addCol(cell, table) {
+  const colIdx = Array.from(cell.parentElement.children).indexOf(cell);
+  Array.from(table.rows).forEach(row => {
+    const ref = row.children[colIdx];
+    let newCell = ref.cloneNode(true);
+    newCell.innerHTML = 'Nueva celda';
+    ref.parentElement.insertBefore(newCell, ref.nextSibling);
+  });
+  loadTemplate(limpiarEditCells(preview.innerHTML));
+}
+function delCol(cell, table) {
+  const colIdx = Array.from(cell.parentElement.children).indexOf(cell);
+  Array.from(table.rows).forEach(row => {
+    if (row.children.length > 1) row.removeChild(row.children[colIdx]);
+  });
+  loadTemplate(limpiarEditCells(preview.innerHTML));
+}
+
+// -----------------------
+// Click fuera de celda: deselecciona
+// -----------------------
+preview.onclick = (e) => {
+  if (!e.target.classList.contains('edit-cell')) {
+    if (activeSpan) activeSpan.style.background = '';
+    activeSpan = null;
+    Array.from(elementList?.children || []).forEach(d => d.classList.remove('active'));
+    inspector.innerHTML = `<h3>Inspector</h3><p>Selecciona un elemento para editar</p>`;
+  }
+};
+
+// -----------------------
+// DRAG/RESIZE TABLAS
+// -----------------------
 btnLayout.onclick = () => {
   layoutMode = !layoutMode;
   btnLayout.textContent = layoutMode ? '✔️ Terminar disposición' : '🖱️ Editar disposición';
@@ -76,138 +401,6 @@ function setLayoutMode(active) {
   });
 }
 
-// Importar plantilla HTML (Django)
-btnImport.onclick = () => fileInput.click();
-fileInput.onchange = e => {
-  const f = e.target.files[0];
-  if (!f) return;
-  const reader = new FileReader();
-  reader.onload = ev => loadTemplate(ev.target.result);
-  reader.readAsText(f, 'UTF-8');
-  e.target.value = '';
-};
-
-function loadTemplate(html) {
-  originalText = html;
-  cellRanges = [];
-  const tags = ['td', 'th', 'caption', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
-  let previewHTML = html;
-  let offset = 0;
-  const tagRE = new RegExp('(<(' + tags.join('|') + ')\\b[^>]*>)([\\s\\S]*?)(<\\/\\2>)', 'gi');
-  let m;
-  while ((m = tagRE.exec(html))) {
-    const [match, openTag, tagName, inner, closeTag] = m;
-    const start = m.index + openTag.length;
-    const end = start + inner.length;
-    const id = cellRanges.length;
-
-    cellRanges.push({ start, end, id });
-
-    let span = `<span class="edit-cell" data-id="${id}" contenteditable="true">${inner}</span>`;
-    previewHTML = previewHTML.slice(0, start + offset)
-      + span
-      + previewHTML.slice(end + offset);
-
-    offset += span.length - inner.length;
-  }
-  preview.innerHTML = previewHTML;
-
-  document.querySelectorAll('.edit-cell').forEach(span => {
-    span.onclick = () => selectElement(span);
-  });
-
-  setLayoutMode(layoutMode);
-  buildElementList();
-}
-
-// Exportar plantilla HTML (NO TOCAR)
-btnExport.onclick = () => {
-  if (codeMode) switchToVisual();
-  let updated = originalText;
-  cellRanges
-    .slice()
-    .sort((a, b) => b.start - a.start)
-    .forEach(cr => {
-      const span = document.querySelector(`.edit-cell[data-id="${cr.id}"]`);
-      const content = span ? span.innerHTML : '';
-      updated = updated.slice(0, cr.start) + content + updated.slice(cr.end);
-    });
-  updated = updated.replace(/(\{\{[^}]*?)(&nbsp;)+([^}]*?\}\})/g, '$1 $3');
-  updated = updated.replace(/(\{%[^%]*?)(&nbsp;)+([^%]*?%\})/g, '$1 $3');
-
-  const blob = new Blob([updated], { type: 'text/html' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'template_django.html';
-  a.click();
-  URL.revokeObjectURL(a.href);
-};
-
-// Sidebar/Inspector
-function buildElementList() {
-  if (!elementList) return;
-  elementList.innerHTML = '';
-  document.querySelectorAll('.edit-cell').forEach(span => {
-    const id = span.dataset.id;
-    const text = span.textContent.trim().slice(0, 30) || '<vacio>';
-    const btn = document.createElement('div');
-    btn.textContent = `Celda ${id}: ${text}`;
-    btn.onclick = () => selectElement(span);
-    elementList.appendChild(btn);
-  });
-}
-
-function selectElement(span) {
-  if (activeSpan) activeSpan.style.background = '';
-  activeSpan = span;
-  span.style.background = 'rgba(255,255,0,0.3)';
-
-  Array.from(elementList.children).forEach(d => d.classList.remove('active'));
-  const match = Array.from(elementList.children)
-    .find(d => d.textContent.startsWith(`Celda ${span.dataset.id}:`));
-  if (match) match.classList.add('active');
-
-  inspector.innerHTML = `
-    <h3>Celda ${span.dataset.id}</h3> 
-    <label>Texto:</label> 
-    <textarea id="ins-text" rows="3">${span.innerHTML}</textarea> 
-    <label>Estilos CSS:</label> 
-    <input id="ins-style" type="text" value="${span.getAttribute('style')||''}">
-    <div style="margin:7px 0;">
-      <button id="btn-insert-img" type="button">Insertar imagen</button>
-      <button id="btn-insert-table" type="button">Insertar tabla</button>
-      <input type="file" id="input-insert-img" accept="image/*" style="display:none;">
-    </div>
-    <div style="margin:10px 0;">
-      <button id="btn-variables" type="button">Variables</button>
-    </div>
-  `;
-
-  document.getElementById('btn-variables').onclick = showVariablesMenu;
-
-  document.getElementById('ins-text').onblur = e =>
-    activeSpan.innerHTML = e.target.value;
-  document.getElementById('ins-style').onblur = e =>
-    activeSpan.setAttribute('style', e.target.value);
-
-  document.getElementById('btn-insert-img').onclick = function() {
-    document.getElementById('input-insert-img').click();
-  };
-  document.getElementById('input-insert-img').onchange = function(e) {
-    subirImagenAJAX(e.target.files[0]);
-    e.target.value = '';
-  };
-  document.getElementById('btn-insert-table').onclick = function() {
-    const tabla = `<table border="1" style="width:100%;border-collapse:collapse;">
-      <tr><td>Celda 1</td><td>Celda 2</td></tr>
-      <tr><td>Celda 3</td><td>Celda 4</td></tr>
-    </table>`;
-    insertHtmlAtCaret(tabla);
-    document.getElementById('ins-text').value = activeSpan.innerHTML;
-  };
-}
-
-// ------ MOVER/REDIMENSIONAR TABLAS SOLO EN MODO DISPOSICIÓN ------
 function enableDragResizeTable(table) {
   if (table._draggableReady) return;
   table._draggableReady = true;
@@ -226,7 +419,6 @@ function enableDragResizeTable(table) {
     if (e.target.classList.contains('edit-cell')) return;
     const rect = table.getBoundingClientRect();
 
-    // Redimensionar (desde esquina)
     if (e.target === handle || (e.clientX > rect.right - 16 && e.clientY > rect.bottom - 16)) {
       resizing = true;
       startX = e.clientX;
@@ -237,7 +429,6 @@ function enableDragResizeTable(table) {
       document.body.style.userSelect = "none";
       return;
     }
-    // Arrastrar
     dragging = true;
     if (getComputedStyle(table).position !== 'absolute') makeAbsolute(table);
     startX = e.clientX;
@@ -256,15 +447,11 @@ function enableDragResizeTable(table) {
       let dy = e.clientY - startY;
       let newLeft = startLeft + dx;
       let newTop = startTop + dy;
-
       let rect = table.getBoundingClientRect();
       let width = rect.width;
       let height = rect.height;
-
-      // Limitar movimiento dentro de preview (bordes exactos)
       newLeft = Math.max(0, Math.min(newLeft, preview.offsetWidth - width));
       newTop = Math.max(0, Math.min(newTop, preview.offsetHeight - height));
-
       table.style.left = newLeft + "px";
       table.style.top  = newTop + "px";
       table.dataset.moved = "1";
@@ -273,7 +460,6 @@ function enableDragResizeTable(table) {
       let dh = e.clientY - startY;
       let newWidth  = startW + dw;
       let newHeight = startH + dh;
-
       const offsetLeft = parseInt(table.style.left, 10) || 0;
       const offsetTop  = parseInt(table.style.top, 10) || 0;
       newWidth  = Math.max(40, Math.min(newWidth, preview.offsetWidth - offsetLeft));
@@ -295,7 +481,6 @@ function enableDragResizeTable(table) {
 }
 
 function makeAbsolute(table) {
-  // Relativo a #preview, no body
   const rect = table.getBoundingClientRect();
   const parentRect = preview.getBoundingClientRect();
   table.style.position = 'absolute';
@@ -305,7 +490,9 @@ function makeAbsolute(table) {
   table.style.height = rect.height + 'px';
 }
 
-// ------ Insertar HTML en caret ------
+// -----------------------
+// Insertar HTML en caret
+// -----------------------
 function insertHtmlAtCaret(html) {
   const sel = window.getSelection();
   if (sel && sel.rangeCount > 0 && activeSpan && activeSpan.contains(sel.anchorNode)) {
@@ -319,7 +506,9 @@ function insertHtmlAtCaret(html) {
   }
 }
 
-// ------ Subir imagen vía AJAX ------
+// -----------------------
+// Subir imagen AJAX
+// -----------------------
 function subirImagenAJAX(file) {
   if (!file) return;
   const formData = new FormData();
@@ -333,8 +522,7 @@ function subirImagenAJAX(file) {
     if (data.url) {
       let imgUrl = data.url.replace(/^\//, '');
       const imgTag = `<img src="${imgUrl}" alt="" style="max-width:300px;max-height:200px;display:block;margin:auto;">`;
-      insertHtmlAtCaret(imgTag);
-      document.getElementById('ins-text').value = activeSpan.innerHTML;
+      insertarContenido(imgTag);
     } else {
       alert('Error subiendo imagen: ' + (data.error || 'Desconocido'));
     }
@@ -342,68 +530,9 @@ function subirImagenAJAX(file) {
   .catch(() => alert('Error subiendo imagen (red).'));
 }
 
-// ------ Menú de variables ------
-function showVariablesMenu() {
-  if (!activeSpan) {
-    alert('Selecciona primero una celda para insertar la variable.');
-    return;
-  }
-  let menu = document.getElementById('var-menu');
-  if (menu) {
-    menu.remove();
-    return;
-  }
-  menu = document.createElement('div');
-  menu.id = 'var-menu';
-  Object.assign(menu.style, {
-    position: 'absolute',
-    top:  '170px',
-    left: (inspector.offsetLeft + 15) + 'px',
-    background: '#fff',
-    border: '1px solid #ccc',
-    padding: '8px',
-    zIndex: 1000
-  });
-
-  const sel = document.createElement('select');
-  Object.entries(variables).forEach(([cat, vars]) => {
-    const grp = document.createElement('optgroup');
-    grp.label = cat;
-    vars.forEach(v => {
-      const opt = document.createElement('option');
-      opt.value       = `{{ ${cat}.${v} }}`;
-      opt.textContent = `${cat}.${v}`;
-      grp.appendChild(opt);
-    });
-    sel.appendChild(grp);
-  });
-
-  const btnIns = document.createElement('button');
-  btnIns.textContent = 'Insertar';
-  btnIns.style.marginLeft = '8px';
-  btnIns.onclick = () => {
-    activeSpan.innerHTML += sel.value;
-    menu.remove();
-    document.getElementById('ins-text').value = activeSpan.innerHTML;
-  };
-
-  menu.appendChild(sel);
-  menu.appendChild(btnIns);
-  document.body.appendChild(menu);
-
-  setTimeout(() => {
-    document.addEventListener('mousedown', function out(e){
-      if (!menu.contains(e.target) && e.target.id !== 'btn-variables') {
-        menu.remove();
-        document.removeEventListener('mousedown', out);
-      }
-    });
-  }, 100);
-}
-
-// ===================
-//   MODO CÓDIGO
-// ===================
+// -----------------------
+// Modo código/visual
+// -----------------------
 btnCode.onclick = () => {
   if (!codeMode) {
     switchToCode();
@@ -440,7 +569,6 @@ function switchToCode() {
   }
   codeArea.value = updated;
   codeArea.style.display = 'block';
-
   btnCode.textContent = '👁️ Visual';
 }
 
@@ -461,11 +589,12 @@ function switchToVisual() {
   btnCode.textContent = '📜 Codigo';
 }
 
-// ------ GUARDAR/CARGAR PLANTILLA en SERVIDOR ------
+// -----------------------
+// Guardar/Cargar plantilla
+// -----------------------
 btnSaveTemplate.onclick = async () => {
   const nombre = inputNombrePlantilla.value.trim();
   if (!nombre) return alert('Ponle un nombre a la plantilla.');
-  // Recoge el HTML actual y estados de tablas
   let updated = originalText;
   cellRanges
     .slice()
@@ -490,7 +619,6 @@ btnSaveTemplate.onclick = async () => {
     html: updated,
     tables: tableStates
   };
-  // Guardar en backend
   const resp = await fetch('/guardar-plantilla/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
